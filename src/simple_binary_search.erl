@@ -12,7 +12,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0,get_range_list/0,search/1,search2/1]).
+-export([start_link/0,get_ranges/0, set_ranges/1, search/1,binary_search/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -22,19 +22,28 @@
   terminate/2,
   code_change/3]).
 
+
+%%%===================================================================
+%%% Macro definitions for api functions
+%%%===================================================================
 -define(SERVER, ?MODULE).
--define(GET_RANGE_LIST, get_range_list).
 -define(SEARCH, search).
 -define(BINARY_SEARCH, binary_search).
-
--record(state, {numbers=[]}).
+-define(GET_RANGE, get_range).
+-define(SET_RANGE, set_range).
 
 %%%===================================================================
-%%% API
+%%% Module API
 %%%===================================================================
-get_range_list()  -> gen_server:call(?MODULE, {?GET_RANGE_LIST}).
-search(Number)    -> gen_server:call(?MODULE, {?SEARCH, Number}).
-search2(Number)   -> gen_server:call(?MODULE, {?BINARY_SEARCH, Number}).
+-record(range_list, {numbers=[]}).
+
+%%%===================================================================
+%%% Module API
+%%%===================================================================
+get_ranges()            -> gen_server:call(?MODULE, {?GET_RANGE}).
+set_ranges(List)        -> gen_server:call(?MODULE, {?SET_RANGE, List}).
+search(Number)          -> gen_server:call(?MODULE, {?SEARCH, Number}).
+binary_search(Number)   -> gen_server:call(?MODULE, {?BINARY_SEARCH, Number}).
 
 
 %%--------------------------------------------------------------------
@@ -64,11 +73,10 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 -spec(init(Args :: term()) ->
-  {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
+  {ok, State :: #range_list{}} | {ok, State :: #range_list{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-  List = lists:seq(0, 10000),
-  {ok, #state{numbers=List}}.
+  {ok, #range_list{numbers=[]}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -78,23 +86,26 @@ init([]) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
-    State :: #state{}) ->
-  {reply, Reply :: term(), NewState :: #state{}} |
-  {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate} |
-  {noreply, NewState :: #state{}} |
-  {noreply, NewState :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
-  {stop, Reason :: term(), NewState :: #state{}}).
+    State :: #range_list{}) ->
+  {reply, Reply :: term(), NewState :: #range_list{}} |
+  {reply, Reply :: term(), NewState :: #range_list{}, timeout() | hibernate} |
+  {noreply, NewState :: #range_list{}} |
+  {noreply, NewState :: #range_list{}, timeout() | hibernate} |
+  {stop, Reason :: term(), Reply :: term(), NewState :: #range_list{}} |
+  {stop, Reason :: term(), NewState :: #range_list{}}).
 
-handle_call({?GET_RANGE_LIST}, _From, State) ->
-  {reply, {get_list, State#state.numbers}, State};
+handle_call({?GET_RANGE}, _From, State) ->
+  {reply, {ok, State#range_list.numbers}, State};
+
+handle_call({?SET_RANGE, List}, _From, _State) ->
+  {reply, {ok}, #range_list{numbers=List}};
 
 handle_call({?SEARCH, Number}, _From, State) ->
-  Result = search_list_for_number(Number, State#state.numbers),
+  Result = search_list_for_number(Number, State#range_list.numbers),
   {reply, Result, State};
 
 handle_call({?BINARY_SEARCH, Number}, _From, State) ->
-  Result = binary_search(Number, State#state.numbers),
+  Result = binary_search_for_number(Number, State#range_list.numbers),
   {reply, Result, State}.
 
 
@@ -105,10 +116,10 @@ handle_call({?BINARY_SEARCH, Number}, _From, State) ->
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(handle_cast(Request :: term(), State :: #state{}) ->
-  {noreply, NewState :: #state{}} |
-  {noreply, NewState :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), NewState :: #state{}}).
+-spec(handle_cast(Request :: term(), State :: #range_list{}) ->
+  {noreply, NewState :: #range_list{}} |
+  {noreply, NewState :: #range_list{}, timeout() | hibernate} |
+  {stop, Reason :: term(), NewState :: #range_list{}}).
 handle_cast(_Request, State) ->
   {noreply, State}.
 
@@ -122,10 +133,10 @@ handle_cast(_Request, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
--spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
-  {noreply, NewState :: #state{}} |
-  {noreply, NewState :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), NewState :: #state{}}).
+-spec(handle_info(Info :: timeout() | term(), State :: #range_list{}) ->
+  {noreply, NewState :: #range_list{}} |
+  {noreply, NewState :: #range_list{}, timeout() | hibernate} |
+  {stop, Reason :: term(), NewState :: #range_list{}}).
 handle_info(_Info, State) ->
   {noreply, State}.
 
@@ -141,7 +152,7 @@ handle_info(_Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
-    State :: #state{}) -> term()).
+    State :: #range_list{}) -> term()).
 terminate(_Reason, _State) ->
   ok.
 
@@ -153,9 +164,9 @@ terminate(_Reason, _State) ->
 %% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
 %% @end
 %%--------------------------------------------------------------------
--spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
+-spec(code_change(OldVsn :: term() | {down, term()}, State :: #range_list{},
     Extra :: term()) ->
-  {ok, NewState :: #state{}} | {error, Reason :: term()}).
+  {ok, NewState :: #range_list{}} | {error, Reason :: term()}).
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
@@ -166,7 +177,7 @@ search_list_for_number(Number, List) ->
   Pred = fun(E) -> E =:= Number end,
   lists:filter(Pred, List).
 
-binary_search(Number, List) ->
+binary_search_for_number(Number, List) ->
   Length = length(List),
   search_region(Number, 1, Length , List).
 
@@ -179,10 +190,10 @@ search_region(Number, Start,End,List) ->
   io:format("search region for ~p | Start ~p | End ~p~n",[Number, Start, End]),
   if
     ValueAtMidPoint < Number ->
-      search_region(Number, MidPoint, End, List);
+      search_region(Number, MidPoint + 1, End, List);
 
     ValueAtMidPoint > Number ->
-      search_region(Number, Start, MidPoint, List);
+      search_region(Number, Start, MidPoint - 1, List);
 
     ValueAtMidPoint =:= Number ->
       {found, Number, MidPoint};
