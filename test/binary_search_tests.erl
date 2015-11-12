@@ -106,7 +106,7 @@ search__list_with_100K_items__find_item_time_test() ->
   L = lists:seq(1,100000),
   NumSearches = 100,
   {Min, Max, Med, Avg } = profiler:test_avg(binary_search, search, [50000, L], NumSearches),
-  ?debugFmt("== ~p Searches == ~n", [NumSearches]),
+  ?debugFmt("== ~p Searches ==", [NumSearches]),
   ?debugFmt("== times are microseconds (1/1000th of millisecond)", []),
   ?debugFmt("== Min: ~p | Max: ~p | Med: ~p | Avg: ~p~n", [Min, Max, Med, Avg]).
 
