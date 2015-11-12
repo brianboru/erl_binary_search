@@ -23,5 +23,11 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    {ok,
+        {
+            {one_for_one, 5, 10},
+            [
+                { tag1, {simple_binary_search, start_link, []}, permanent,10000,worker,[simple_binary_search]}
+            ]
+        }}.
 

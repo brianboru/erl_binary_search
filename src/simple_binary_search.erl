@@ -12,7 +12,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0,get_ranges/0, set_ranges/1, search/1,binary_search/1]).
+-export([start_link/0, start/1, stop/1, get_ranges/0, set_ranges/1, search/1,binary_search/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -56,6 +56,26 @@ binary_search(Number)   -> gen_server:call(?MODULE, {?BINARY_SEARCH, Number}).
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
   gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Starts the gen server as standalone with the Name specified
+%% @end
+%%--------------------------------------------------------------------
+-spec(start(Name :: term()) ->
+  {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
+start(Name) ->
+  gen_server:start({local, Name}, ?MODULE, [], []).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Stops the standalone gen server with the specified Name
+%% @end
+%%--------------------------------------------------------------------
+-spec(stop(Name :: term()) ->
+  {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
+stop(Name) ->
+  gen_server:cast(Name, stop).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -120,6 +140,9 @@ handle_call({?BINARY_SEARCH, Number}, _From, State) ->
   {noreply, NewState :: #range_list{}} |
   {noreply, NewState :: #range_list{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #range_list{}}).
+handle_cast(stop, State) ->
+  {stop, normal, State};
+
 handle_cast(_Request, State) ->
   {noreply, State}.
 
