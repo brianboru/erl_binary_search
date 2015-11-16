@@ -8,4 +8,4 @@
 %%%-------------------------------------------------------------------
 -author("brian").
 
--record(issuer, { low=0, high=0, country=0}).
+-record(issuer_range, { low=0, high=0, country=0, currency=0}).
